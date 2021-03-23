@@ -17,7 +17,9 @@ fn main() {
 	loop {
 		let word = stdin().lock().lines().next().unwrap().unwrap();
 		if word.chars().into_iter().filter(|v| v == &'_').count() == 0 {
-			println!("I win!");
+			if word.len() > 0 {
+				println!("I win!");
+			}
 			break;
 		}
 		let guess = best_letter(&words, word, guessed.clone());
@@ -58,13 +60,14 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 		})
 		.collect::<Vec<&String>>();
 	println!("{} words are under consideration...", remaining_words.len());
-	if remaining_words.len() < 5 {
-		println!("I think your word might be one of {:?}", remaining_words);
-	} else if remaining_words.len() == 1 {
-		println!("Your word is {}!", remaining_words[0])
+	if remaining_words.len() == 1 {
+		println!("Your word is {}!", remaining_words[0]);
+		return None;
 	} else if remaining_words.len() == 0 {
 		println!("I admit defeat! I don't know any more words to ask you about.");
 		return None;
+	} else if remaining_words.len() < 5 {
+		println!("I think your word might be one of {:?}", remaining_words);
 	}
 	let available = CHARS
 		.iter()
