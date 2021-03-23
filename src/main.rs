@@ -1,7 +1,4 @@
-use std::{
-	error,
-	io::{stdin, BufRead},
-};
+use std::io::{stdin, BufRead};
 
 const WORDS_LIST: &'static str = include_str!("word_list.txt");
 const CHARS: [char; 26] = [
