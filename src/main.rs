@@ -59,7 +59,6 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 			true
 		})
 		.collect::<Vec<&String>>();
-	println!("{} words are under consideration...", remaining_words.len());
 	if remaining_words.len() == 1 {
 		println!("Your word is {}!", remaining_words[0]);
 		return None;
@@ -68,6 +67,8 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 		return None;
 	} else if remaining_words.len() < 5 {
 		println!("I think your word might be one of {:?}", remaining_words);
+	} else {
+		println!("{} words are under consideration...", remaining_words.len());
 	}
 	let available = CHARS
 		.iter()
