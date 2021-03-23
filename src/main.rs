@@ -1,7 +1,5 @@
 use std::io::{stdin, BufRead};
 
-use rand::{prelude::SliceRandom, thread_rng};
-
 const WORDS_LIST: &'static str = include_str!("word_list.txt");
 const CHARS: [char; 26] = [
 	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
