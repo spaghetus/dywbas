@@ -1,4 +1,7 @@
-use std::io::{stdin, BufRead};
+use std::{
+	error,
+	io::{stdin, BufRead},
+};
 
 const WORDS_LIST: &'static str = include_str!("word_list.txt");
 const CHARS: [char; 26] = [
@@ -40,21 +43,27 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 			if v.len() != word.len() {
 				return false;
 			}
-			for i in 0..word.len() {
-				let target = word.chars().nth(i).unwrap();
-				let source = v.chars().nth(i).unwrap();
-				if target == '_' {
-					if guessed.contains(&source) {
-						return false;
-					} else {
-						continue;
+			let error_count = word
+				.chars()
+				.into_iter()
+				.enumerate()
+				.filter(|position| {
+					let target = position.1;
+					let source = v.chars().nth(position.0).unwrap();
+					if target == '_' {
+						if guessed.contains(&source) {
+							return true;
+						} else {
+							return false;
+						}
 					}
-				}
-				if target != source {
-					return false;
-				}
-			}
-			true
+					if target != source {
+						return true;
+					}
+					false
+				})
+				.count();
+			error_count == 0
 		})
 		.collect::<Vec<&String>>();
 	if remaining_words.len() == 1 {
