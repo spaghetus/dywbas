@@ -22,17 +22,17 @@ fn main() {
 		}
 		let guess = best_letter(&words, word, guessed.clone());
 		match guess {
-			Some(guess) => {
+			Ok(guess) => {
 				guessed.push(guess.clone());
 				println!("I think {} is the best letter.", guess);
 				println!("Type your word: ");
 			}
-			None => break,
+			Err(_) => break,
 		}
 	}
 }
 
-fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<&char> {
+fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Result<&char, bool> {
 	println!("\n");
 	let remaining_words = words
 		.into_iter()
@@ -65,12 +65,13 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 		.collect::<Vec<&String>>();
 	if remaining_words.len() == 1 {
 		println!("Your word is {}!", remaining_words[0]);
-		return None;
+		return Err(true);
 	} else if remaining_words.len() == 0 {
 		println!("I admit defeat! I don't know any more words to ask you about.");
 		if guessed.len() == 0 {
 			println!("Is that even a word? It's pretty long...");
 		}
+		return Err(false);
 	} else if remaining_words.len() < 5 {
 		println!("I think your word might be one of {:?}", remaining_words);
 	} else {
@@ -99,5 +100,38 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 		counts.first().unwrap(),
 		counts.last().unwrap()
 	);
-	Some(counts.last().unwrap().0)
+	Ok(counts.last().unwrap().0)
+}
+
+#[test]
+fn check_every_word() {
+	let words = WORDS_LIST
+		.lines()
+		.map(|v| v.to_string())
+		.collect::<Vec<String>>();
+	for target in words.clone() {
+		let mut guessed: Vec<char> = vec![];
+		let correct: bool = {
+			let mut correct = false;
+			for _ in 0..26 {
+				let word = target
+					.chars()
+					.into_iter()
+					.map(|ch| if guessed.contains(&ch) { ch } else { '_' })
+					.collect::<String>();
+				let guess = best_letter(&words, word, guessed.clone());
+				match guess {
+					Ok(g) => {
+						guessed.push(g.clone());
+					}
+					Err(correct_) => {
+						correct = correct_;
+						break;
+					}
+				};
+			}
+			correct
+		};
+		assert!(correct);
+	}
 }
