@@ -140,5 +140,5 @@ fn check_every_word() {
 			correct
 		})
 		.collect::<Vec<bool>>();
-	println!("{}", successes.iter().filter(|v| **v).count())
+	println!("{:?}", successes.iter().filter(|v| !**v))
 }
