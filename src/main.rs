@@ -140,32 +140,5 @@ fn check_every_word() {
 			correct
 		})
 		.collect::<Vec<bool>>();
-	for i in successes {
-		assert!(i)
-	}
-	// for target in words.clone() {
-	// 	let mut guessed: Vec<char> = vec![];
-	// 	let correct: bool = {
-	// 		let mut correct = false;
-	// 		for _ in 0..26 {
-	// 			let word = target
-	// 				.chars()
-	// 				.into_iter()
-	// 				.map(|ch| if guessed.contains(&ch) { ch } else { '_' })
-	// 				.collect::<String>();
-	// 			let guess = best_letter(&words, word, guessed.clone());
-	// 			match guess {
-	// 				Ok(g) => {
-	// 					guessed.push(g.clone());
-	// 				}
-	// 				Err(correct_) => {
-	// 					correct = correct_;
-	// 					break;
-	// 				}
-	// 			};
-	// 		}
-	// 		correct
-	// 	};
-	// 	assert!(correct);
-	// }
+	println!("{}", successes.iter().filter(|v| **v).count())
 }
