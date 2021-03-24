@@ -68,7 +68,9 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Option<
 		return None;
 	} else if remaining_words.len() == 0 {
 		println!("I admit defeat! I don't know any more words to ask you about.");
-		return None;
+		if guessed.len() == 0 {
+			println!("Is that even a word? It's pretty long...");
+		}
 	} else if remaining_words.len() < 5 {
 		println!("I think your word might be one of {:?}", remaining_words);
 	} else {
