@@ -13,9 +13,37 @@ fn main() {
 		.map(|v| v.to_string())
 		.collect::<Vec<String>>();
 	let mut guessed: Vec<char> = vec![];
+	let mut last_length: Option<usize> = None;
 	println!("Type your word: ");
 	loop {
-		let word = stdin().lock().lines().next().unwrap().unwrap();
+		let word = loop {
+			let word = stdin().lock().lines().next().unwrap().unwrap();
+			match last_length {
+				Some(len) => {
+					if len == word.len() {
+						let un_guessed_count = word
+							.chars()
+							.filter(|ch| ch != &'_' && !guessed.contains(ch))
+							.count();
+						if un_guessed_count > 0 {
+							println!("This word contains characters we haven't guessed yet, try putting it in again.");
+							continue;
+						} else {
+							break word;
+						}
+					} else {
+						println!("This word isn't the same length...");
+						continue;
+					}
+				}
+				None => {
+					last_length = Some(word.len());
+					guessed
+						.append(&mut word.chars().filter(|ch| ch != &'_').collect::<Vec<char>>());
+					break word;
+				}
+			}
+		};
 		if word.chars().par_bridge().filter(|v| v == &'_').count() == 0 {
 			if word.len() > 0 {
 				println!("I win!");
