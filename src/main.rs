@@ -123,6 +123,7 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Result<
 					.count(),
 			)
 		})
+		.filter(|(_, count)| count < &remaining_words.len())
 		.collect::<Vec<(&char, usize)>>();
 	counts.sort_by(|a, b| a.1.cmp(&b.1));
 	println!(
