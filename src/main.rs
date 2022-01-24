@@ -97,6 +97,7 @@ fn main() {
 }
 
 fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> SnowmanResult {
+	#[cfg(not(test))]
 	println!("\n");
 	let remaining_words = words
 		.into_par_iter()
@@ -150,13 +151,12 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 	if counts.is_empty() {
 		SnowmanResult::UnknownError
 	} else {
-		if cfg!(not(test)) {
-			println!(
-				"{:?}, {:?}",
-				counts.first().unwrap(),
-				counts.last().unwrap(),
-			);
-		}
+		#[cfg(not(test))]
+		println!(
+			"{:?}, {:?}",
+			counts.first().unwrap(),
+			counts.last().unwrap(),
+		);
 		if remaining_words.len() < 5 {
 			SnowmanResult::Considering(
 				remaining_words.iter().map(|v| (*v).clone()).collect(),
