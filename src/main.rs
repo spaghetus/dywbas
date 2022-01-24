@@ -100,7 +100,7 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 	#[cfg(not(test))]
 	println!("\n");
 	let remaining_words = words
-		.into_par_iter()
+		.par_iter()
 		.filter(|v| {
 			if v.len() != word.len() {
 				return false;
@@ -134,7 +134,7 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 		.filter(|v| !guessed.contains(v))
 		.collect::<Vec<&char>>();
 	let mut counts = available
-		.into_par_iter()
+		.par_iter()
 		.map(|ch| {
 			(
 				ch,
@@ -146,8 +146,8 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 			)
 		})
 		.filter(|(_, count)| count < &remaining_words.len())
-		.collect::<Vec<(&char, usize)>>();
-	counts.sort_by(|a, b| a.1.cmp(&b.1));
+		.collect::<Vec<(&&char, usize)>>();
+	counts.par_sort_by(|a, b| a.1.cmp(&b.1));
 	if counts.is_empty() {
 		SnowmanResult::UnknownError
 	} else {
@@ -160,10 +160,10 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 		if remaining_words.len() < 5 {
 			SnowmanResult::Considering(
 				remaining_words.iter().map(|v| (*v).clone()).collect(),
-				*counts.last().unwrap().0,
+				**counts.last().unwrap().0,
 			)
 		} else {
-			SnowmanResult::ConsideringMany(remaining_words.len(), *counts.last().unwrap().0)
+			SnowmanResult::ConsideringMany(remaining_words.len(), **counts.last().unwrap().0)
 		}
 	}
 }
@@ -173,12 +173,13 @@ fn check_every_word() {
 	let now = Instant::now();
 	let words = WORDS_LIST
 		.lines()
+		.par_bridge()
 		.map(|v| v.to_string())
 		.filter(|v| v.chars().all(|c| c.is_ascii_lowercase()))
 		.collect::<Vec<String>>();
 	let successes = words
 		.clone()
-		.par_iter()
+		.iter()
 		.map(|target| {
 			let mut guessed: Vec<char> = vec![];
 			let (correct, guesses): (bool, u8) = {
@@ -188,7 +189,6 @@ fn check_every_word() {
 					guesses += 1;
 					let word = target
 						.chars()
-						.into_iter()
 						.map(|ch| if guessed.contains(&ch) { ch } else { '_' })
 						.collect::<String>();
 					let guess = best_letter(&words, word, guessed.clone());
