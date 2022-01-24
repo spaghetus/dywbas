@@ -1,6 +1,14 @@
 use rayon::prelude::*;
 use std::io::{stdin, BufRead};
 
+enum SnowmanResult {
+	Success(String),
+	NoMoreWords(bool),
+	Considering(Vec<String>, char),
+	ConsideringMany(usize, char),
+	UnknownError,
+}
+
 const WORDS_LIST: &'static str = include_str!("word_list.txt");
 const CHARS: [char; 26] = [
 	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
@@ -52,17 +60,41 @@ fn main() {
 		}
 		let guess = best_letter(&words, word, guessed.clone());
 		match guess {
-			Ok(guess) => {
+			SnowmanResult::Considering(words, guess) => {
+				println!("I'm considering {}", words.join(", "));
 				guessed.push(guess.clone());
 				println!("I think {} is the best letter.", guess);
 				println!("Type your word: ");
 			}
-			Err(_) => break,
+			SnowmanResult::ConsideringMany(count, guess) => {
+				println!("I'm considering {} words", count);
+				guessed.push(guess.clone());
+				println!("I think {} is the best letter.", guess);
+				println!("Type your word: ");
+			}
+			SnowmanResult::Success(word) => {
+				println!("I win!");
+				println!("The word was {}", word);
+				break;
+			}
+			SnowmanResult::NoMoreWords(l) => {
+				println!("I lose!");
+				println!("I couldn't find any words that fit the word you gave me.");
+				if l {
+					println!("Was that even a word? It looked very long...");
+				}
+				break;
+			}
+			SnowmanResult::UnknownError => {
+				println!("I lose!");
+				println!("I don't know what happened, but I lost.");
+				break;
+			}
 		}
 	}
 }
 
-fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Result<&char, bool> {
+fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> SnowmanResult {
 	println!("\n");
 	let remaining_words = words
 		.into_par_iter()
@@ -94,18 +126,9 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Result<
 		})
 		.collect::<Vec<&String>>();
 	if remaining_words.len() == 1 {
-		println!("Your word is {}!", remaining_words[0]);
-		return Err(true);
+		return SnowmanResult::Success(remaining_words[0].clone());
 	} else if remaining_words.len() == 0 {
-		println!("I admit defeat! I don't know any more words to ask you about.");
-		if guessed.len() == 0 {
-			println!("Is that even a word? It's pretty long...");
-		}
-		return Err(false);
-	} else if remaining_words.len() < 5 {
-		println!("I think your word might be one of {:?}", remaining_words);
-	} else {
-		println!("{} words are under consideration...", remaining_words.len());
+		return SnowmanResult::NoMoreWords(guessed.len() == 0);
 	}
 	let available = CHARS
 		.par_iter()
@@ -126,28 +149,45 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Result<
 		.filter(|(_, count)| count < &remaining_words.len())
 		.collect::<Vec<(&char, usize)>>();
 	counts.sort_by(|a, b| a.1.cmp(&b.1));
-	println!(
-		"{:?}, {:?}",
-		counts.first().unwrap(),
-		counts.last().unwrap()
-	);
-	Ok(counts.last().unwrap().0)
+	if counts.len() == 0 {
+		SnowmanResult::UnknownError
+	} else {
+		if cfg!(not(test)) {
+			println!(
+				"{:?}, {:?}",
+				counts.first().unwrap(),
+				counts.last().unwrap(),
+			);
+		}
+		if remaining_words.len() < 5 {
+			SnowmanResult::Considering(
+				remaining_words.iter().map(|v| (*v).clone()).collect(),
+				*counts.last().unwrap().0,
+			)
+		} else {
+			SnowmanResult::ConsideringMany(remaining_words.len(), *counts.last().unwrap().0)
+		}
+	}
 }
 
 #[test]
 fn check_every_word() {
+	let now = Instant::now();
 	let words = WORDS_LIST
 		.lines()
 		.map(|v| v.to_string())
+		.filter(|v| v.chars().all(|c| c.is_ascii_lowercase()))
 		.collect::<Vec<String>>();
 	let successes = words
 		.clone()
 		.par_iter()
 		.map(|target| {
 			let mut guessed: Vec<char> = vec![];
-			let correct: bool = {
-				let mut correct = false;
-				for _ in 0..26 {
+			let (correct, guesses): (bool, u8) = {
+				let mut guesses = 0;
+				let correct;
+				loop {
+					guesses += 1;
 					let word = target
 						.chars()
 						.into_iter()
@@ -155,19 +195,43 @@ fn check_every_word() {
 						.collect::<String>();
 					let guess = best_letter(&words, word, guessed.clone());
 					match guess {
-						Ok(g) => {
+						SnowmanResult::Considering(_, g) | SnowmanResult::ConsideringMany(_, g) => {
 							guessed.push(g.clone());
 						}
-						Err(correct_) => {
-							correct = correct_;
+						SnowmanResult::Success(_) => {
+							correct = guesses <= 6;
+							break;
+						}
+						_ => {
+							correct = false;
 							break;
 						}
 					};
 				}
-				correct
+				(correct, guesses)
 			};
-			correct
+			(target.clone(), correct, guesses)
 		})
-		.collect::<Vec<bool>>();
-	println!("{}", successes.iter().filter(|v| **v).count())
+		.collect::<Vec<(String, bool, u8)>>();
+	eprintln!("Finished in {}s", now.elapsed().as_secs());
+	eprintln!(
+		"{} victories out of {} words",
+		successes.iter().filter(|v| v.1 && v.2 < 5).count(),
+		words.len()
+	);
+	let sorted = {
+		let mut successes = successes.clone();
+		successes.sort_by(|a, b| a.2.cmp(&b.2));
+		successes
+	};
+	eprintln!(
+		"The hardest word was {}, with {} guesses.",
+		sorted.last().unwrap().0,
+		sorted.last().unwrap().2
+	);
+	eprintln!(
+		"The easiest word was {}, with {} guess(es).",
+		sorted.first().unwrap().0,
+		sorted.first().unwrap().2
+	);
 }
