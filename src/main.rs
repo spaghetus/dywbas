@@ -96,7 +96,7 @@ fn main() {
 	}
 }
 
-fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> SnowmanResult {
+fn best_letter(words: &[String], word: String, guessed: Vec<char>) -> SnowmanResult {
 	#[cfg(not(test))]
 	println!("\n");
 	let remaining_words = words
@@ -141,7 +141,7 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 				remaining_words
 					.clone()
 					.into_iter()
-					.filter(|w| w.chars().collect::<Vec<char>>().contains(ch))
+					.filter(|w| w.chars().any(|x| x == **ch))
 					.count(),
 			)
 		})
@@ -150,21 +150,13 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 	counts.par_sort_by(|a, b| a.1.cmp(&b.1));
 	if counts.is_empty() {
 		SnowmanResult::UnknownError
+	} else if remaining_words.len() < 5 {
+		SnowmanResult::Considering(
+			remaining_words.iter().map(|v| (*v).clone()).collect(),
+			**counts.last().unwrap().0,
+		)
 	} else {
-		#[cfg(not(test))]
-		println!(
-			"{:?}, {:?}",
-			counts.first().unwrap(),
-			counts.last().unwrap(),
-		);
-		if remaining_words.len() < 5 {
-			SnowmanResult::Considering(
-				remaining_words.iter().map(|v| (*v).clone()).collect(),
-				**counts.last().unwrap().0,
-			)
-		} else {
-			SnowmanResult::ConsideringMany(remaining_words.len(), **counts.last().unwrap().0)
-		}
+		SnowmanResult::ConsideringMany(remaining_words.len(), **counts.last().unwrap().0)
 	}
 }
 
@@ -179,7 +171,7 @@ fn check_every_word() {
 		.collect::<Vec<String>>();
 	let successes = words
 		.clone()
-		.iter()
+		.par_iter()
 		.map(|target| {
 			let mut guessed: Vec<char> = vec![];
 			let (correct, guesses): (bool, u8) = {
@@ -194,7 +186,7 @@ fn check_every_word() {
 					let guess = best_letter(&words, word, guessed.clone());
 					match guess {
 						SnowmanResult::Considering(_, g) | SnowmanResult::ConsideringMany(_, g) => {
-							guessed.push(g.clone());
+							guessed.push(g);
 						}
 						SnowmanResult::Success(_) => {
 							correct = guesses <= 6;
@@ -218,7 +210,7 @@ fn check_every_word() {
 		words.len()
 	);
 	let sorted = {
-		let mut successes = successes.clone();
+		let mut successes = successes;
 		successes.sort_by(|a, b| a.2.cmp(&b.2));
 		successes
 	};
