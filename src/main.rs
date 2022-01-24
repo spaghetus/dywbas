@@ -1,5 +1,7 @@
 use rayon::prelude::*;
 use std::io::{stdin, BufRead};
+#[cfg(test)]
+use std::time::Instant;
 
 enum SnowmanResult {
 	Success(String),
@@ -9,7 +11,7 @@ enum SnowmanResult {
 	UnknownError,
 }
 
-const WORDS_LIST: &'static str = include_str!("word_list.txt");
+const WORDS_LIST: &str = include_str!("word_list.txt");
 const CHARS: [char; 26] = [
 	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
 	't', 'u', 'v', 'w', 'x', 'y', 'z',
@@ -53,7 +55,7 @@ fn main() {
 			}
 		};
 		if word.chars().par_bridge().filter(|v| v == &'_').count() == 0 {
-			if word.len() > 0 {
+			if !word.is_empty() {
 				println!("I win!");
 			}
 			break;
@@ -62,13 +64,13 @@ fn main() {
 		match guess {
 			SnowmanResult::Considering(words, guess) => {
 				println!("I'm considering {}", words.join(", "));
-				guessed.push(guess.clone());
+				guessed.push(guess);
 				println!("I think {} is the best letter.", guess);
 				println!("Type your word: ");
 			}
 			SnowmanResult::ConsideringMany(count, guess) => {
 				println!("I'm considering {} words", count);
-				guessed.push(guess.clone());
+				guessed.push(guess);
 				println!("I think {} is the best letter.", guess);
 				println!("Type your word: ");
 			}
@@ -110,11 +112,7 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 					let target = position.1;
 					let source = v.chars().nth(position.0).unwrap();
 					if target == '_' {
-						if guessed.contains(&source) {
-							return true;
-						} else {
-							return false;
-						}
+						return guessed.contains(&source);
 					}
 					if target != source {
 						return true;
@@ -127,8 +125,8 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 		.collect::<Vec<&String>>();
 	if remaining_words.len() == 1 {
 		return SnowmanResult::Success(remaining_words[0].clone());
-	} else if remaining_words.len() == 0 {
-		return SnowmanResult::NoMoreWords(guessed.len() == 0);
+	} else if remaining_words.is_empty() {
+		return SnowmanResult::NoMoreWords(guessed.is_empty());
 	}
 	let available = CHARS
 		.par_iter()
@@ -149,7 +147,7 @@ fn best_letter(words: &Vec<String>, word: String, guessed: Vec<char>) -> Snowman
 		.filter(|(_, count)| count < &remaining_words.len())
 		.collect::<Vec<(&char, usize)>>();
 	counts.sort_by(|a, b| a.1.cmp(&b.1));
-	if counts.len() == 0 {
+	if counts.is_empty() {
 		SnowmanResult::UnknownError
 	} else {
 		if cfg!(not(test)) {
